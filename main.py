@@ -6,6 +6,7 @@ from scipy import spatial
 import pygame
 import time
 from TextWrap import TextWrap
+import sys
 
 pygame.init()
 
@@ -52,15 +53,17 @@ def test(colors):
     pygame.quit()
 
 def convert(data):
-    import tqdm
+    print("Converting image...")
+    win = pygame.display.set_mode((512,32))
     # A map is 128x128
     ret = np.empty((128,128), int)
-    t = tqdm.tqdm(total=(128*128), desc="Converting...")
+    w = 0
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
             ret[i][j] = findClosestIndex(data[i][j])
-            t.update(1)
-    t.close()
+        w += 4
+        pygame.draw.rect(win,(0,255,0),(0,0,w,32))
+        pygame.display.flip()
     return ret
         
 def fileconvert(filename):
@@ -89,18 +92,20 @@ font = pygame.font.SysFont(
 , 16*GUI_SCALE)
 
 def renderblock(surf, data, selected):
-    pygame.draw.rect(surf, tuple(
-        [int(i) for i in dataExpanded[data[selected[::-1]]][0]]),
+    color = tuple([int(i) for i in dataExpanded[data[selected[::-1]]][0]])
+    pygame.draw.rect(surf, tuple([255-i for i in color]),
         scale((512+64, 80, 128, 128)))
+    pygame.draw.rect(surf, color, scale((512+65, 81, 126, 126)))
     #print(selected[::-1])
     name = dataExpanded[data[selected[::-1]]][1]
     TextWrap(surf, (name if type(name) == str else ", ".join(name)),
-            (255,255,255), (512, 0, 256, 80), font)
-##    text = font.render((name if type(name) == str else name[0]),
-##                       True, (255,255,255))
-##    textRect = text.get_rect()
-##    textRect.center = (512+128, 16)
-##    surf.blit(text, textRect)
+            (255,255,255), scale((512, 0, 256, 80)), font)
+    TextWrap(surf, "rgb(" + ", ".join([str(i) for i in color]) + ")",
+            (255,255,255), scale((512, 224, 256, 80)), font)
+    slope = dataExpanded[data[selected[::-1]]][2]
+    pygame.draw.line(surf, (255,255,255), *scale(
+        ((512+64, 256+(slope*64)), (512+192, 384-(slope*64)))
+    ), 10*GUI_SCALE)
 
 def render(surf, data, selected):
     win.fill((0,0,0))
@@ -111,8 +116,16 @@ def render(surf, data, selected):
             ),
             scale((selected[0]*4+1, selected[1]*4+1, 2, 2)))
         renderblock(surf, data, selected)
-#out = fileconvert("pixelartShip.png")
-out = pk.load(open("out.pkl","rb"))
+
+
+
+### MAIN ###
+if len(sys.argv) != 2:
+    print(f"Usage: {sys.argv[0]} file")
+    sys.exit(1)
+        
+out = fileconvert(sys.argv[1])
+#out = pk.load(open("out.pkl","rb"))
 win = pygame.display.set_mode(((512+256)*GUI_SCALE, 512*GUI_SCALE))
 pygame.display.set_caption("ImageCraftifier")
 renderimage(win,out)
