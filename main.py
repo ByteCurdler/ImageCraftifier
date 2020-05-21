@@ -3,6 +3,14 @@ import pickle as pk
 from PIL import Image
 import numpy as np
 from scipy import spatial
+import pygame
+import time
+from TextWrap import TextWrap
+
+pygame.init()
+
+GUI_SCALE = 1
+
 data = pk.load(open("MapColorsBlockAdjusted.pkl", "rb"))
 dataExpanded = []
 dataColors = []
@@ -61,18 +69,77 @@ def fileconvert(filename):
         raise Exception(f"File too small/big: {filename} ({data.shape[1]}x{data.shape[0]})")
     return convert(data)
 
-out = fileconvert("pixelartShip.png")
-import pygcurse, pygame, time
-pygame.init()
-win = pygcurse.PygcurseWindow(128,128,font=pygame.font.Font(None, 10))
-win.autoupdate = False
-for i in range(128):
-    for j in range(128):
-        win.putchar("·", i, j, None, tuple(
-            [int(i) for i in dataExpanded[out[j][i]][0]])
-        )
-    win.update()
-pygcurse.waitforkeypress()
+def scale(data):
+    return type(data)([i*GUI_SCALE for i in data])
+
+def renderimage(surf, data):
+    pxSize = 4*GUI_SCALE
+    for i in range(128):
+        for j in range(128):
+            
+            pygame.draw.rect(surf,tuple(
+                    [int(i) for i in dataExpanded[data[j][i]][0]]
+                ),(i*pxSize, j*pxSize, pxSize, pxSize))
+
+font = pygame.font.SysFont(
+    [i for i in ["minecraftia",
+          "liberationsans",
+          "freesans",
+          pygame.font.get_default_font()] if i in pygame.font.get_fonts()][0]
+, 16*GUI_SCALE)
+
+def renderblock(surf, data, selected):
+    pygame.draw.rect(surf, tuple(
+        [int(i) for i in dataExpanded[data[selected[::-1]]][0]]),
+        scale((512+64, 80, 128, 128)))
+    #print(selected[::-1])
+    name = dataExpanded[data[selected[::-1]]][1]
+    TextWrap(surf, (name if type(name) == str else ", ".join(name)),
+            (255,255,255), (512, 0, 256, 80), font)
+##    text = font.render((name if type(name) == str else name[0]),
+##                       True, (255,255,255))
+##    textRect = text.get_rect()
+##    textRect.center = (512+128, 16)
+##    surf.blit(text, textRect)
+
+def render(surf, data, selected):
+    win.fill((0,0,0))
+    renderimage(surf, data)
+    if selected != None:
+        pygame.draw.rect(surf, tuple(
+                [255-int(i) for i in dataExpanded[data[selected[::-1]]][0]]
+            ),
+            scale((selected[0]*4+1, selected[1]*4+1, 2, 2)))
+        renderblock(surf, data, selected)
+#out = fileconvert("pixelartShip.png")
+out = pk.load(open("out.pkl","rb"))
+win = pygame.display.set_mode(((512+256)*GUI_SCALE, 512*GUI_SCALE))
+pygame.display.set_caption("ImageCraftifier")
+renderimage(win,out)
+pygame.display.flip()
+selected = (100,100)
+showDot = (100,100)
+draw = True
+running = True
+while running:
+    for event in pygame.event.get():
+        #print(event)
+        if event.type == 4:
+            if event.pos[0] < 512*GUI_SCALE:
+                showDot = tuple([i//(4*GUI_SCALE) for i in event.pos])
+                draw = True
+            else:
+                showDot = selected
+        if event.type == 5:
+            if event.pos[0] < 512*GUI_SCALE:
+                showDot = selected = tuple([i//(4*GUI_SCALE) for i in event.pos])
+                draw = True
+        if event.type == 12: #Quit
+            running = False
+    if draw:
+        render(win, out, showDot)
+        pygame.display.flip()
+        draw = False
 pygame.quit()
         
 
