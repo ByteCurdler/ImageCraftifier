@@ -81,8 +81,6 @@ def convert(data):
         
 def fileconvert(filename):
     data = np.asarray(Image.open(filename).convert("RGB"))
-##    if data.shape[:2] != (128,128):
-##        raise Exception(f"File too small/big: {filename} ({data.shape[1]}x{data.shape[0]})")
     return convert(data)
 
 def scale(data):
@@ -121,8 +119,8 @@ def renderblock(surf, data, selected, pos):
     TextWrap(surf, "rgb(" + ", ".join([str(i) for i in color]) + ")",
             (255,255,255), scale((512, 224, 256, 80)), font)
     slope = dataBlock[2]
-    pygame.draw.line(surf, (255,255,255), *scale(
-        ((512+64, 256+(slope*64)), (512+192, 384-(slope*64)))
+    pygame.draw.line(surf, (255,255,255),
+                     scale((512+64, 256+(slope*64))), scale((512+192, 384-(slope*64))
     ), 10*GUI_SCALE)
     TextWrap(surf, f"x:{selected[0]+1+pos[0]}, z:{selected[1]+1+pos[1]}",
             (255,255,255), scale((512, 384, 256, 80)), font)
